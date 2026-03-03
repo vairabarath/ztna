@@ -14,10 +14,38 @@ on:
 permissions:
   contents: write
 
+env:
+  BUF_VERSION: "1.50.0"
+
 jobs:
+  # Generate proto files first (needed by all builds)
+  generate-proto:
+    name: Generate Proto Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Buf
+        run: |
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o "${TMPDIR}/buf"
+          chmod +x "${TMPDIR}/buf"
+          sudo mv "${TMPDIR}/buf" /usr/local/bin/buf
+          buf --version
+
+      - name: Generate Go Proto Files
+        run: buf generate
+
+      - name: Upload Proto Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: proto-gen
+          path: proto/gen/
+
   # Controller builds (Go supports easy cross-compilation)
   build-controller-linux:
     name: Build Controller (Linux)
+    needs: generate-proto
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,19 +60,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download Proto Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: proto-gen
+          path: proto/gen/
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
-      - name: Setup Buf
-        uses: bufbuild/buf-action@v1
-        with:
-          version: latest
-          github_token: ${{ github.token }}
-
-      - name: Generate Proto Files
-        run: buf generate
+          cache-dependency-path: controller/go.sum
 
       - name: Build Controller
         env:
@@ -64,6 +90,7 @@ jobs:
 
   build-controller-macos:
     name: Build Controller (macOS)
+    needs: generate-proto
     runs-on: macos-latest
     strategy:
       matrix:
@@ -78,19 +105,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Download Proto Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: proto-gen
+          path: proto/gen/
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
-      - name: Setup Buf
-        uses: bufbuild/buf-action@v1
-        with:
-          version: latest
-          github_token: ${{ github.token }}
-
-      - name: Generate Proto Files
-        run: buf generate
+          cache-dependency-path: controller/go.sum
 
       - name: Build Controller
         env:
@@ -257,6 +282,7 @@ jobs:
   create-release:
     name: Create Release
     needs: 
+      - generate-proto
       - build-controller-linux
       - build-controller-macos
       - build-connector-linux
