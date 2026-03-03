@@ -63,6 +63,16 @@ get_latest_version() {
         sed -E 's/.*"tag_name": "([^"]+)".*/\1/'
 }
 
+# Global temp dir for downloads
+TEMP_DIR=""
+
+# Cleanup function
+cleanup() {
+    if [ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ]; then
+        rm -rf "$TEMP_DIR"
+    fi
+}
+
 # Download binary
 download_binary() {
     local component="$1"
@@ -73,35 +83,35 @@ download_binary() {
 
     echo "Downloading ${component} ${version} for ${platform}..."
 
-    local temp_dir
-    temp_dir=$(mktemp -d)
-    trap "rm -rf $temp_dir" EXIT
-
-    if ! curl -sL -o "${temp_dir}/${binary_name}" "$download_url"; then
+    TEMP_DIR=$(mktemp -d)
+    
+    if ! curl -fsL -o "${TEMP_DIR}/${binary_name}" "$download_url"; then
         echo "Failed to download from: $download_url"
+        cleanup
         exit 1
     fi
 
     # Verify checksum if available
     local checksum_url="${GITHUB_BASE_URL}/releases/download/${version}/checksums.txt"
-    if curl -sL --head "$checksum_url" | grep -q "200 OK"; then
+    if curl -fsL --head "$checksum_url" 2>/dev/null | grep -q "200 OK"; then
         local expected_checksum
-        expected_checksum=$(curl -sL "$checksum_url" | grep "$binary_name" | awk '{print $1}')
+        expected_checksum=$(curl -fsL "$checksum_url" 2>/dev/null | grep "$binary_name" | awk '{print $1}')
         if [ -n "$expected_checksum" ]; then
             local actual_checksum
-            actual_checksum=$(sha256sum "${temp_dir}/${binary_name}" | awk '{print $1}')
+            actual_checksum=$(sha256sum "${TEMP_DIR}/${binary_name}" | awk '{print $1}')
             if [ "$expected_checksum" != "$actual_checksum" ]; then
                 echo "Checksum verification failed!"
                 echo "Expected: $expected_checksum"
                 echo "Actual:   $actual_checksum"
+                cleanup
                 exit 1
             fi
             echo "Checksum verified."
         fi
     fi
 
-    chmod +x "${temp_dir}/${binary_name}"
-    echo "${temp_dir}/${binary_name}"
+    chmod +x "${TEMP_DIR}/${binary_name}"
+    echo "${TEMP_DIR}/${binary_name}"
 }
 
 # Install binary
@@ -339,6 +349,9 @@ validate_args() {
 
 # Main
 main() {
+    # Set up cleanup trap
+    trap cleanup EXIT
+
     echo "======================================"
     echo "ZTNA Binary Installer"
     echo "======================================"
@@ -369,6 +382,9 @@ main() {
     local binary_path
     binary_path=$(download_binary "$COMPONENT_TYPE" "$version" "$platform")
     install_binary "$binary_path" "$COMPONENT_TYPE"
+
+    # Binary installed successfully, clear temp dir
+    TEMP_DIR=""
 
     echo ""
     create_systemd_service "$COMPONENT_TYPE"
