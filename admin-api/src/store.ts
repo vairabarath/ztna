@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import type { AgentRecord, ConnectorRecord, PersistedState, WorkspaceRecord } from "./types.js";
+import type { AgentRecord, ConnectorRecord, PersistedState, RemoteNetworkRecord, WorkspaceRecord } from "./types.js";
 
 const EMPTY_STATE: PersistedState = {
   workspaces: [],
+  remoteNetworks: [],
   connectors: [],
   agents: [],
 };
@@ -33,6 +34,7 @@ export class StateStore {
 
   private normalizeState(input: Partial<PersistedState>): PersistedState {
     const workspaces = input.workspaces ?? [];
+    const remoteNetworks = input.remoteNetworks ?? [];
     const connectors = (input.connectors ?? []).map((connector) => ({
       ...connector,
       managedDeviceId: normalizeString((connector as Partial<ConnectorRecord>).managedDeviceId) ?? connector.id,
@@ -41,7 +43,7 @@ export class StateStore {
       ...agent,
       managedDeviceId: normalizeString((agent as Partial<AgentRecord>).managedDeviceId) ?? agent.id,
     }));
-    return { workspaces, connectors, agents };
+    return { workspaces, remoteNetworks, connectors, agents };
   }
 
   private write(state: PersistedState): void {
@@ -99,6 +101,7 @@ export class StateStore {
     );
 
     state.workspaces = state.workspaces.filter((workspace) => workspace.id !== workspaceId);
+    state.remoteNetworks = state.remoteNetworks.filter((rn) => rn.workspaceId !== workspaceId);
     state.connectors = state.connectors.filter((connector) => connector.workspaceId !== workspaceId);
     state.agents = state.agents.filter(
       (agent) => agent.workspaceId !== workspaceId && !connectorIds.has(agent.connectorId),
@@ -107,8 +110,68 @@ export class StateStore {
     return true;
   }
 
+  // Remote Networks (Branches)
+  listRemoteNetworks(workspaceId: string): RemoteNetworkRecord[] {
+    return this.read().remoteNetworks.filter((rn) => rn.workspaceId === workspaceId);
+  }
+
+  getRemoteNetwork(remoteNetworkId: string): RemoteNetworkRecord | undefined {
+    return this.read().remoteNetworks.find((rn) => rn.id === remoteNetworkId);
+  }
+
+  saveRemoteNetwork(remoteNetwork: RemoteNetworkRecord): RemoteNetworkRecord {
+    const state = this.read();
+    state.remoteNetworks = [...state.remoteNetworks.filter((item) => item.id !== remoteNetwork.id), remoteNetwork];
+    this.write(state);
+    return remoteNetwork;
+  }
+
+  updateRemoteNetwork(
+    remoteNetworkId: string,
+    patch: Partial<Pick<RemoteNetworkRecord, "name" | "description">>,
+  ): RemoteNetworkRecord | undefined {
+    const state = this.read();
+    const index = state.remoteNetworks.findIndex((rn) => rn.id === remoteNetworkId);
+    if (index < 0) {
+      return undefined;
+    }
+    const current = state.remoteNetworks[index];
+    const updated: RemoteNetworkRecord = {
+      ...current,
+      name: normalizeString(patch.name) ?? current.name,
+      description: normalizeString(patch.description) ?? current.description,
+    };
+    state.remoteNetworks[index] = updated;
+    this.write(state);
+    return updated;
+  }
+
+  deleteRemoteNetwork(remoteNetworkId: string): boolean {
+    const state = this.read();
+    const hasNetwork = state.remoteNetworks.some((rn) => rn.id === remoteNetworkId);
+    if (!hasNetwork) {
+      return false;
+    }
+
+    const connectorIds = new Set(
+      state.connectors
+        .filter((connector) => connector.remoteNetworkId === remoteNetworkId)
+        .map((connector) => connector.id),
+    );
+
+    state.remoteNetworks = state.remoteNetworks.filter((rn) => rn.id !== remoteNetworkId);
+    state.connectors = state.connectors.filter((connector) => connector.remoteNetworkId !== remoteNetworkId);
+    state.agents = state.agents.filter((agent) => !connectorIds.has(agent.connectorId));
+    this.write(state);
+    return true;
+  }
+
   listConnectors(workspaceId: string): ConnectorRecord[] {
     return this.read().connectors.filter((connector) => connector.workspaceId === workspaceId);
+  }
+
+  listConnectorsByRemoteNetwork(remoteNetworkId: string): ConnectorRecord[] {
+    return this.read().connectors.filter((connector) => connector.remoteNetworkId === remoteNetworkId);
   }
 
   getConnector(connectorId: string): ConnectorRecord | undefined {

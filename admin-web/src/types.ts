@@ -2,6 +2,17 @@ export interface WorkspaceSummary {
   id: string;
   displayName: string;
   createdAt: string;
+  remoteNetworkCount: number;
+  connectorCount: number;
+  agentCount: number;
+}
+
+export interface RemoteNetworkSummary {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description: string;
+  createdAt: string;
   connectorCount: number;
   agentCount: number;
 }
@@ -32,6 +43,7 @@ export interface AgentSummary {
 export interface ConnectorSummary {
   id: string;
   workspaceId: string;
+  remoteNetworkId: string;
   managedDeviceId: string;
   name: string;
   createdAt: string;

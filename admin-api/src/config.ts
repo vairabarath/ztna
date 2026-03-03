@@ -53,7 +53,7 @@ export function loadConfig(): AppConfig {
 
   return {
     port: Number(env("ADMIN_API_PORT", "8787")),
-    corsOrigin: env("ADMIN_CORS_ORIGIN", "http://localhost:5173"),
+    corsOrigin: env("ADMIN_CORS_ORIGIN", "*"),
     controllerTarget,
     controllerTLS,
     controllerTLSServerName: tlsServerName,

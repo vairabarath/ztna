@@ -1,5 +1,6 @@
 export type TokenKind = "connector" | "agent";
 
+// Company boundary
 export interface WorkspaceRecord {
   id: string;
   displayName: string;
@@ -7,9 +8,20 @@ export interface WorkspaceRecord {
   createdAt: string;
 }
 
+// Remote Network (Branch/Location) within a workspace
+export interface RemoteNetworkRecord {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+}
+
+// Connector within a remote network
 export interface ConnectorRecord {
   id: string;
   workspaceId: string;
+  remoteNetworkId: string;  // NEW: Links to remote network
   managedDeviceId: string;
   name: string;
   bootstrapToken: string;
@@ -39,6 +51,7 @@ export interface AgentRecord {
 
 export interface PersistedState {
   workspaces: WorkspaceRecord[];
+  remoteNetworks: RemoteNetworkRecord[];  // NEW
   connectors: ConnectorRecord[];
   agents: AgentRecord[];
 }

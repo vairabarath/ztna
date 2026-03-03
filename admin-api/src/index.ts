@@ -13,7 +13,7 @@ import {
   buildConnectorInstallScript,
 } from "./install.js";
 import { StateStore } from "./store.js";
-import type { AgentRecord, ConnectorRecord, WorkspaceRecord } from "./types.js";
+import type { AgentRecord, ConnectorRecord, RemoteNetworkRecord, WorkspaceRecord } from "./types.js";
 
 const cfg = loadConfig();
 const app = express();
@@ -40,6 +40,7 @@ const connectorPublicAddrSchema = z
 
 const createConnectorSchema = z.object({
   name: z.string().trim().min(2).max(80),
+  remoteNetworkId: z.string().uuid(),
   connectorPublicAddr: connectorPublicAddrSchema,
   dataplaneListenAddr: z.string().trim().min(3).max(200).default("0.0.0.0:9443"),
 });
@@ -137,6 +138,133 @@ app.delete("/api/workspaces/:workspaceId", (req, res) => {
   res.status(204).send();
 });
 
+// Remote Networks (Branches) API
+const createRemoteNetworkSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(200).optional(),
+});
+
+const updateRemoteNetworkSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(200).optional(),
+});
+
+app.get("/api/workspaces/:workspaceId/networks", (req, res) => {
+  const workspaceId = req.params.workspaceId;
+  const workspace = store.getWorkspace(workspaceId);
+  if (!workspace) {
+    res.status(404).json({ error: "workspace not found" });
+    return;
+  }
+
+  const networks = store.listRemoteNetworks(workspaceId).map((network) => toRemoteNetworkDTO(network));
+  res.json({ items: networks });
+});
+
+app.post("/api/workspaces/:workspaceId/networks", (req, res) => {
+  const workspaceId = req.params.workspaceId;
+  const workspace = store.getWorkspace(workspaceId);
+  if (!workspace) {
+    res.status(404).json({ error: "workspace not found" });
+    return;
+  }
+
+  const parsed = createRemoteNetworkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(validationError(parsed.error));
+    return;
+  }
+
+  const network = store.saveRemoteNetwork({
+    id: randomUUID(),
+    workspaceId,
+    name: parsed.data.name,
+    description: parsed.data.description || "",
+    createdAt: new Date().toISOString(),
+  });
+
+  res.status(201).json({ item: toRemoteNetworkDTO(network) });
+});
+
+app.patch("/api/workspaces/:workspaceId/networks/:networkId", (req, res) => {
+  const { workspaceId, networkId } = req.params;
+  const workspace = store.getWorkspace(workspaceId);
+  if (!workspace) {
+    res.status(404).json({ error: "workspace not found" });
+    return;
+  }
+
+  const network = store.getRemoteNetwork(networkId);
+  if (!network || network.workspaceId !== workspaceId) {
+    res.status(404).json({ error: "network not found" });
+    return;
+  }
+
+  const parsed = updateRemoteNetworkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json(validationError(parsed.error));
+    return;
+  }
+
+  const updated = store.updateRemoteNetwork(networkId, parsed.data);
+  if (!updated) {
+    res.status(404).json({ error: "network not found" });
+    return;
+  }
+
+  res.json({ item: toRemoteNetworkDTO(updated) });
+});
+
+app.delete("/api/workspaces/:workspaceId/networks/:networkId", (req, res) => {
+  const { workspaceId, networkId } = req.params;
+  const workspace = store.getWorkspace(workspaceId);
+  if (!workspace) {
+    res.status(404).json({ error: "workspace not found" });
+    return;
+  }
+
+  const network = store.getRemoteNetwork(networkId);
+  if (!network || network.workspaceId !== workspaceId) {
+    res.status(404).json({ error: "network not found" });
+    return;
+  }
+
+  const deleted = store.deleteRemoteNetwork(networkId);
+  if (!deleted) {
+    res.status(404).json({ error: "network not found" });
+    return;
+  }
+
+  res.status(204).send();
+});
+
+// Connectors API
+app.get("/api/workspaces/:workspaceId/networks/:networkId/connectors", async (req, res) => {
+  const { workspaceId, networkId } = req.params;
+  const workspace = store.getWorkspace(workspaceId);
+  if (!workspace) {
+    res.status(404).json({ error: "workspace not found" });
+    return;
+  }
+
+  const network = store.getRemoteNetwork(networkId);
+  if (!network || network.workspaceId !== workspaceId) {
+    res.status(404).json({ error: "network not found" });
+    return;
+  }
+
+  try {
+    const deviceStatusById = await loadDeviceStatusMap(workspaceId);
+    const connectors = store
+      .listConnectorsByRemoteNetwork(networkId)
+      .map((connector) => toConnectorDTO(connector, deviceStatusById));
+
+    res.json({ items: connectors });
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+
 app.get("/api/workspaces/:workspaceId/connectors", async (req, res) => {
   const workspaceId = req.params.workspaceId;
   const workspace = store.getWorkspace(workspaceId);
@@ -171,6 +299,13 @@ app.post("/api/workspaces/:workspaceId/connectors", async (req, res) => {
     return;
   }
 
+  // Validate remote network exists
+  const network = store.getRemoteNetwork(parsed.data.remoteNetworkId);
+  if (!network || network.workspaceId !== workspaceId) {
+    res.status(404).json({ error: "remote network not found" });
+    return;
+  }
+
   try {
     const expiresAt = new Date(Date.now() + cfg.tokenTTLHours * 60 * 60 * 1000);
     const tokenResult = await controlPlane.createConnectorToken(workspaceId, expiresAt);
@@ -179,6 +314,7 @@ app.post("/api/workspaces/:workspaceId/connectors", async (req, res) => {
     const connector: ConnectorRecord = {
       id: connectorId,
       workspaceId,
+      remoteNetworkId: parsed.data.remoteNetworkId,
       managedDeviceId: connectorId,
       name: parsed.data.name,
       bootstrapToken: tokenResult.token,
@@ -458,8 +594,24 @@ function toWorkspaceDTO(workspace: WorkspaceRecord) {
     id: workspace.id,
     displayName: workspace.displayName,
     createdAt: workspace.createdAt,
+    remoteNetworkCount: store.listRemoteNetworks(workspace.id).length,
     connectorCount: store.listConnectors(workspace.id).length,
     agentCount: store.listAgentsByWorkspace(workspace.id).length,
+  };
+}
+
+function toRemoteNetworkDTO(network: import("./types.js").RemoteNetworkRecord) {
+  const connectors = store.listConnectorsByRemoteNetwork(network.id);
+  const agentCount = connectors.reduce((sum, c) => sum + store.listAgentsByConnector(c.id).length, 0);
+  
+  return {
+    id: network.id,
+    workspaceId: network.workspaceId,
+    name: network.name,
+    description: network.description,
+    createdAt: network.createdAt,
+    connectorCount: connectors.length,
+    agentCount: agentCount,
   };
 }
 

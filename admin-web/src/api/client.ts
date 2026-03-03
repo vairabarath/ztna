@@ -1,4 +1,4 @@
-import type { AgentSummary, ConnectorSummary, WorkspaceSummary } from "../types";
+import type { AgentSummary, ConnectorSummary, RemoteNetworkSummary, WorkspaceSummary } from "../types";
 
 async function parseJSON<T>(response: Response): Promise<T> {
   const data = (await response.json()) as T & { error?: unknown; details?: unknown };
@@ -91,6 +91,45 @@ export async function deleteWorkspace(workspaceId: string): Promise<void> {
   await del(`/api/workspaces/${workspaceId}`);
 }
 
+// Remote Networks API
+export async function listRemoteNetworks(workspaceId: string): Promise<RemoteNetworkSummary[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/networks`);
+  const payload = await parseJSON<{ items: RemoteNetworkSummary[] }>(response);
+  return payload.items;
+}
+
+export interface CreateRemoteNetworkInput {
+  workspaceId: string;
+  name: string;
+  description?: string;
+}
+
+export async function createRemoteNetwork(input: CreateRemoteNetworkInput): Promise<RemoteNetworkSummary> {
+  const payload = await post<{ item: RemoteNetworkSummary }>(
+    `/api/workspaces/${input.workspaceId}/networks`,
+    { name: input.name, description: input.description },
+  );
+  return payload.item;
+}
+
+export async function updateRemoteNetwork(
+  workspaceId: string,
+  networkId: string,
+  name: string,
+  description?: string,
+): Promise<RemoteNetworkSummary> {
+  const payload = await patch<{ item: RemoteNetworkSummary }>(
+    `/api/workspaces/${workspaceId}/networks/${networkId}`,
+    { name, description },
+  );
+  return payload.item;
+}
+
+export async function deleteRemoteNetwork(workspaceId: string, networkId: string): Promise<void> {
+  await del(`/api/workspaces/${workspaceId}/networks/${networkId}`);
+}
+
+// Connectors API
 export async function listConnectors(workspaceId: string): Promise<ConnectorSummary[]> {
   const response = await fetch(`/api/workspaces/${workspaceId}/connectors`);
   const payload = await parseJSON<{ items: ConnectorSummary[] }>(response);
@@ -99,6 +138,7 @@ export async function listConnectors(workspaceId: string): Promise<ConnectorSumm
 
 export interface CreateConnectorInput {
   workspaceId: string;
+  remoteNetworkId: string;
   name: string;
   connectorPublicAddr: string;
   dataplaneListenAddr: string;
@@ -108,6 +148,7 @@ export async function createConnector(input: CreateConnectorInput): Promise<Conn
   const payload = await post<{ item: ConnectorSummary }>(
     `/api/workspaces/${input.workspaceId}/connectors`,
     {
+      remoteNetworkId: input.remoteNetworkId,
       name: input.name,
       connectorPublicAddr: input.connectorPublicAddr,
       dataplaneListenAddr: input.dataplaneListenAddr,
