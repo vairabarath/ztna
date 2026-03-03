@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package ztna.dataplane.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/igris/ztna/proto/gen/go/ztna/dataplane/v1;dataplanev1";
+
+message AgentHello {
+  string workspace_id = 1;
+  string device_id = 2;
+  string cert_fingerprint = 3;
+}
+
+message AgentPing {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp sent_at = 2;
+}
+
+message StreamSessionRequest {
+  oneof frame {
+    AgentHello hello = 1;
+    AgentPing ping = 2;
+  }
+}
+
+message ConnectorHello {
+  string workspace_id = 1;
+  string connector_device_id = 2;
+  string peer_device_id = 3;
+  string connector_cert_fingerprint = 4;
+}
+
+message ConnectorPong {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp received_at = 2;
+}
+
+message ConnectorError {
+  string message = 1;
+}
+
+message StreamSessionResponse {
+  oneof frame {
+    ConnectorHello hello = 1;
+    ConnectorPong pong = 2;
+    ConnectorError error = 3;
+  }
+}
+
+service AgentConnectorService {
+  // Persistent mTLS data-plane stream between an agent and a connector.
+  rpc StreamSession(stream StreamSessionRequest) returns (stream StreamSessionResponse);
+}

@@ -1,0 +1,22 @@
+-- Development bootstrap. This script runs once when the PGDATA volume is empty.
+
+DO
+$$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'ztna') THEN
+        CREATE ROLE ztna LOGIN PASSWORD 'ztna';
+    END IF;
+END
+$$;
+
+ALTER DATABASE ztna OWNER TO ztna;
+GRANT CONNECT ON DATABASE ztna TO ztna;
+GRANT USAGE, CREATE ON SCHEMA public TO ztna;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ztna;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO ztna;
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;

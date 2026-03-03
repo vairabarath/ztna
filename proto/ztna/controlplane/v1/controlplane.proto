@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package ztna.controlplane.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/igris/ztna/proto/gen/go/ztna/controlplane/v1;controlplanev1";
+
+// EnrollTokenType scopes bootstrap tokens to specific workload classes.
+enum EnrollTokenType {
+  ENROLL_TOKEN_TYPE_UNSPECIFIED = 0;
+  ENROLL_TOKEN_TYPE_CONNECTOR = 1;
+  ENROLL_TOKEN_TYPE_AGENT = 2;
+}
+
+message CreateWorkspaceRequest {
+  string display_name = 1;
+}
+
+message CreateWorkspaceResponse {
+  string workspace_id = 1;
+  string ca_cert_pem = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message CreateEnrollTokenRequest {
+  string workspace_id = 1;
+  EnrollTokenType type = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message CreateEnrollTokenResponse {
+  string token_id = 1;
+  string token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message GetWorkspaceCARequest {
+  string workspace_id = 1;
+}
+
+message GetWorkspaceCAResponse {
+  string workspace_id = 1;
+  string ca_cert_pem = 2;
+}
+
+message EnrollRequest {
+  string workspace_id = 1;
+  string bootstrap_token = 2;
+  EnrollTokenType type = 3;
+  string csr_pem = 4;
+  string device_id = 5;
+  string hostname = 6;
+  map<string, string> metadata = 7;
+}
+
+message EnrollResponse {
+  string certificate_pem = 1;
+  string ca_cert_pem = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string cert_fingerprint = 4;
+}
+
+message RenewRequest {
+  string workspace_id = 1;
+  string csr_pem = 2;
+  string device_id = 3;
+}
+
+message RenewResponse {
+  string certificate_pem = 1;
+  string ca_cert_pem = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string cert_fingerprint = 4;
+}
+
+message StreamRevocationsRequest {
+  string workspace_id = 1;
+  string device_id = 2;
+}
+
+message RevocationEvent {
+  string workspace_id = 1;
+  string device_id = 2;
+  string cert_fingerprint = 3;
+  string reason = 4;
+  google.protobuf.Timestamp revoked_at = 5;
+}
+
+message HeartbeatRequest {
+  string workspace_id = 1;
+  string device_id = 2;
+  string cert_fingerprint = 3;
+}
+
+message HeartbeatResponse {
+  google.protobuf.Timestamp server_time = 1;
+}
+
+message RevokeDeviceRequest {
+  string workspace_id = 1;
+  string device_id = 2;
+  string reason = 3;
+}
+
+message RevokeDeviceResponse {
+  string workspace_id = 1;
+  string device_id = 2;
+  string cert_fingerprint = 3;
+  google.protobuf.Timestamp revoked_at = 4;
+}
+
+message ListDevicesRequest {
+  string workspace_id = 1;
+}
+
+message DeviceInfo {
+  string workspace_id = 1;
+  string device_id = 2;
+  string cert_fingerprint = 3;
+  string status = 4;
+  google.protobuf.Timestamp last_seen_at = 5;
+}
+
+message ListDevicesResponse {
+  repeated DeviceInfo items = 1;
+}
+
+service WorkspaceService {
+  // Creates a new workspace and mints an isolated workspace CA.
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
+
+  // Creates a single-use enrollment token scoped to one workspace and type.
+  rpc CreateEnrollToken(CreateEnrollTokenRequest) returns (CreateEnrollTokenResponse);
+
+  // Returns the public CA certificate for workspace bootstrap trust.
+  rpc GetWorkspaceCA(GetWorkspaceCARequest) returns (GetWorkspaceCAResponse);
+}
+
+service EnrollmentService {
+  // Exchanges a valid bootstrap token + CSR for a short-lived signed certificate.
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+
+  // Renews a certificate using existing mTLS identity.
+  rpc Renew(RenewRequest) returns (RenewResponse);
+}
+
+service DeviceService {
+  // Streams revocation updates to connected devices.
+  rpc StreamRevocations(StreamRevocationsRequest) returns (stream RevocationEvent);
+
+  // Receives periodic liveness and cert-fingerprint updates from devices.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // Revokes the currently active device certificate and publishes an event.
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse);
+
+  // Returns all known devices for one workspace.
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse);
+}

@@ -1,0 +1,493 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  --bg: #eef3e8;
+  --bg-alt: #f6f8f2;
+  --ink: #12281d;
+  --ink-subtle: #42604f;
+  --line: #cad7c9;
+  --accent: #0f8b6d;
+  --accent-deep: #075844;
+  --signal: #f2a541;
+  --error: #9f2f2f;
+  --card: rgba(255, 255, 255, 0.84);
+  --shadow: 0 18px 36px rgba(7, 30, 20, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 85% 20%, rgba(15, 139, 109, 0.25), transparent 36%),
+    radial-gradient(circle at 10% 85%, rgba(242, 165, 65, 0.24), transparent 38%),
+    linear-gradient(135deg, var(--bg), var(--bg-alt));
+}
+
+code,
+pre {
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+}
+
+.app-shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  animation: rise 350ms ease;
+}
+
+.workspace-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-head {
+  padding: 6px 2px;
+}
+
+.panel-head h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  letter-spacing: -0.03em;
+}
+
+.subhead {
+  color: var(--ink-subtle);
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--accent-deep);
+}
+
+.workspace-create,
+.workspace-list {
+  padding: 16px;
+}
+
+.workspace-create h2,
+.workspace-list h2,
+.main-panel h2,
+.main-panel h3 {
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.workspace-create form {
+  display: grid;
+  gap: 10px;
+}
+
+input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fefefa;
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+  transition: border-color 140ms ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+
+button:hover {
+  filter: saturate(1.08);
+}
+
+.workspace-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.workspace-item small {
+  color: var(--ink-subtle);
+}
+
+.workspace-item.active {
+  background: rgba(15, 139, 109, 0.11);
+  border-color: rgba(15, 139, 109, 0.55);
+}
+
+.hint {
+  margin: 0;
+  color: var(--ink-subtle);
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.topbar {
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h2 {
+  margin: 0 0 8px;
+}
+
+.topbar code {
+  color: var(--ink-subtle);
+  font-size: 0.82rem;
+}
+
+.status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-subtle);
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 4px rgba(242, 165, 65, 0.28);
+}
+
+.error-banner {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(159, 47, 47, 0.35);
+  background: rgba(159, 47, 47, 0.1);
+  color: var(--error);
+  font-weight: 600;
+}
+
+.provision-card {
+  padding: 18px;
+}
+
+.workspace-settings-card {
+  padding: 18px;
+}
+
+.workspace-settings-form {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-settings-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-subtle);
+}
+
+.provision-card p {
+  margin-top: 0;
+  color: var(--ink-subtle);
+}
+
+.connector-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.connector-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-subtle);
+}
+
+.connectors-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.connector-card {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.connector-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.connector-head p {
+  margin: 0;
+  color: var(--ink-subtle);
+}
+
+.status-stack {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+
+.status-ok {
+  border: 1px solid rgba(6, 108, 73, 0.38);
+  background: rgba(15, 139, 109, 0.13);
+  color: #065b44;
+}
+
+.status-warn {
+  border: 1px solid rgba(176, 116, 18, 0.35);
+  background: rgba(242, 165, 65, 0.18);
+  color: #935b05;
+}
+
+.status-neutral {
+  border: 1px solid rgba(66, 96, 79, 0.3);
+  background: rgba(66, 96, 79, 0.1);
+  color: #30483b;
+}
+
+.token-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(7, 88, 68, 0.11);
+  color: var(--accent-deep);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.install-block {
+  display: grid;
+  gap: 8px;
+}
+
+.install-block h4,
+.agent-section h4 {
+  margin: 0;
+}
+
+.install-block code,
+.agent-list code {
+  display: block;
+  border-radius: 10px;
+  border: 1px dashed rgba(66, 96, 79, 0.45);
+  background: #fbfcf8;
+  padding: 10px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+}
+
+.copy-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.copy-btn {
+  background: #fff;
+  color: var(--accent-deep);
+  border: 1px solid rgba(7, 88, 68, 0.35);
+  font-size: 0.84rem;
+  padding: 8px 12px;
+}
+
+.copy-btn:hover {
+  background: rgba(15, 139, 109, 0.09);
+}
+
+.agent-section {
+  display: grid;
+  gap: 10px;
+}
+
+.connector-edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.connector-edit-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-subtle);
+}
+
+.agent-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.agent-list li {
+  border: 1px solid rgba(66, 96, 79, 0.3);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.agent-info {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.agent-headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-inline {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.agent-edit-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.agent-list small {
+  display: block;
+  color: var(--ink-subtle);
+  margin: 4px 0 8px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.danger-btn {
+  background: linear-gradient(90deg, #a53a3a, #7d1f1f);
+}
+
+.empty-state {
+  padding: 22px;
+  text-align: center;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--ink-subtle);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .connector-form {
+    grid-template-columns: 1fr;
+  }
+
+  .connector-edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-headline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

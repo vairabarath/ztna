@@ -1,0 +1,29 @@
+# Generated proto code
+proto/gen/
+
+# Go
+controller/bin/
+
+# Rust
+target/
+**/target/
+
+# Local runtime data
+*.log
+*.db
+*.sqlite
+.env
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# Admin dashboard runtime state
+admin-api/data/state.json

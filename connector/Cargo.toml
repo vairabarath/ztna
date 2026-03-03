@@ -1,0 +1,23 @@
+[package]
+name = "ztna-connector"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+prost = "0.13"
+prost-types = "0.13"
+rcgen = { version = "0.13", features = ["pem"] }
+ring = "0.17"
+rustls-pemfile = "2"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-stream = "0.1"
+tonic = { version = "0.12", features = ["transport", "tls", "tls-roots"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+
+[build-dependencies]
+tonic-build = "0.12"
