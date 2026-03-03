@@ -81,12 +81,12 @@ download_binary() {
     local binary_name="ztna-${component}-${platform}"
     local download_url="${GITHUB_BASE_URL}/releases/download/${version}/${binary_name}"
 
-    echo "Downloading ${component} ${version} for ${platform}..."
+    echo "Downloading ${component} ${version} for ${platform}..." >&2
 
     TEMP_DIR=$(mktemp -d)
     
     if ! curl -fsL -o "${TEMP_DIR}/${binary_name}" "$download_url"; then
-        echo "Failed to download from: $download_url"
+        echo "Failed to download from: $download_url" >&2
         cleanup
         exit 1
     fi
@@ -100,18 +100,19 @@ download_binary() {
             local actual_checksum
             actual_checksum=$(sha256sum "${TEMP_DIR}/${binary_name}" | awk '{print $1}')
             if [ "$expected_checksum" != "$actual_checksum" ]; then
-                echo "Checksum verification failed!"
-                echo "Expected: $expected_checksum"
-                echo "Actual:   $actual_checksum"
+                echo "Checksum verification failed!" >&2
+                echo "Expected: $expected_checksum" >&2
+                echo "Actual:   $actual_checksum" >&2
                 cleanup
                 exit 1
             fi
-            echo "Checksum verified."
+            echo "Checksum verified." >&2
         fi
     fi
 
     chmod +x "${TEMP_DIR}/${binary_name}"
-    echo "${TEMP_DIR}/${binary_name}"
+    # Only output the path to stdout
+    printf '%s' "${TEMP_DIR}/${binary_name}"
 }
 
 # Install binary
