@@ -37,6 +37,15 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Setup Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: latest
+          github_token: ${{ github.token }}
+
+      - name: Generate Proto Files
+        run: buf generate
+
       - name: Build Controller
         env:
           GOOS: ${{ matrix.goos }}
@@ -73,6 +82,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+
+      - name: Setup Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: latest
+          github_token: ${{ github.token }}
+
+      - name: Generate Proto Files
+        run: buf generate
 
       - name: Build Controller
         env:
