@@ -19,6 +19,9 @@ const GITHUB_REPO_OWNER = process.env.ZTNA_REPO_OWNER || "vairabarath";
 const GITHUB_REPO_NAME = process.env.ZTNA_REPO_NAME || "ztna";
 const INSTALL_SCRIPT_URL = `https://raw.githubusercontent.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/main/scripts/install.sh`;
 
+// Base URL for admin API (for CA cert download)
+const ADMIN_API_BASE = process.env.ADMIN_PUBLIC_BASE_URL || "http://localhost:8787";
+
 /**
  * Build a Twingate-style install command for connectors
  * This generates a curl command that downloads and runs the install script
@@ -27,6 +30,10 @@ export function buildConnectorInstallCommand(
   connector: ConnectorRecord,
   controllerAddr: string,
 ): string {
+  // Extract admin API base from controller address (assume same host, port 8787)
+  const controllerHost = controllerAddr.replace(/^https?:\/\//, '').split(':')[0];
+  const caCertUrl = `http://${controllerHost}:8787/ca.crt`;
+  
   const args = [
     `-t connector`,
     `-n ${sh(connector.workspaceId)}`,
@@ -34,6 +41,7 @@ export function buildConnectorInstallCommand(
     `-c ${sh(controllerAddr)}`,
     `-d ${sh(connector.managedDeviceId)}`,
     `--listen-addr ${sh(connector.dataplaneListenAddr)}`,
+    `--ca-cert-url ${sh(caCertUrl)}`,
   ];
 
   return `curl -sL ${INSTALL_SCRIPT_URL} | sudo bash -s -- ${args.join(" ")}`;
@@ -46,6 +54,10 @@ export function buildAgentInstallCommand(
   agent: AgentRecord,
   controllerAddr: string,
 ): string {
+  // Extract admin API base from controller address (assume same host, port 8787)
+  const controllerHost = controllerAddr.replace(/^https?:\/\//, '').split(':')[0];
+  const caCertUrl = `http://${controllerHost}:8787/ca.crt`;
+  
   const args = [
     `-t agent`,
     `-n ${sh(agent.workspaceId)}`,
@@ -54,6 +66,7 @@ export function buildAgentInstallCommand(
     `-d ${sh(agent.managedDeviceId)}`,
     `--connector-addr ${sh(agent.connectorAddr)}`,
     `--connector-name ${sh(agent.connectorServerName)}`,
+    `--ca-cert-url ${sh(caCertUrl)}`,
   ];
 
   return `curl -sL ${INSTALL_SCRIPT_URL} | sudo bash -s -- ${args.join(" ")}`;

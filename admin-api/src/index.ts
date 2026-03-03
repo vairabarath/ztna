@@ -436,9 +436,17 @@ app.get("/install/agent/:agentId.sh", (req, res) => {
     );
 });
 
-app.listen(cfg.port, () => {
+// Serve controller CA certificate
+app.get("/ca.crt", (_req, res) => {
+  res
+    .setHeader("Cache-Control", "public, max-age=3600")
+    .type("application/x-pem-file")
+    .send(cfg.controllerCACertPEM);
+});
+
+app.listen(cfg.port, "0.0.0.0", () => {
   // eslint-disable-next-line no-console
-  console.log(`ztna-admin-api listening on http://localhost:${cfg.port}`);
+  console.log(`ztna-admin-api listening on http://0.0.0.0:${cfg.port}`);
 });
 
 function fullControllerAddr(): string {

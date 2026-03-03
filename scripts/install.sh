@@ -16,6 +16,7 @@ WORKSPACE_ID=""
 BOOTSTRAP_TOKEN=""
 CONTROLLER_ADDR=""
 CONTROLLER_CA_CERT=""
+CA_CERT_URL=""
 CONNECTOR_ADDR=""
 CONNECTOR_SERVER_NAME=""
 DEVICE_ID=""
@@ -143,6 +144,33 @@ install_binary() {
     fi
 }
 
+# Download CA certificate
+download_ca_cert() {
+    local config_dir="$1"
+    local ca_cert_path="${config_dir}/controller-ca.pem"
+    
+    if [ -n "$CONTROLLER_CA_CERT" ] && [ -f "$CONTROLLER_CA_CERT" ]; then
+        # Use provided CA cert
+        cp "$CONTROLLER_CA_CERT" "$ca_cert_path"
+        echo "$ca_cert_path"
+        return 0
+    fi
+    
+    if [ -n "$CA_CERT_URL" ]; then
+        echo "Downloading CA certificate from ${CA_CERT_URL}..." >&2
+        if curl -fsL -o "$ca_cert_path" "$CA_CERT_URL"; then
+            chmod 644 "$ca_cert_path"
+            echo "$ca_cert_path"
+            return 0
+        else
+            echo "Warning: Failed to download CA certificate from ${CA_CERT_URL}" >&2
+            return 1
+        fi
+    fi
+    
+    return 1
+}
+
 # Create systemd service
 create_systemd_service() {
     local component="$1"
@@ -161,6 +189,12 @@ create_systemd_service() {
     # Create directories
     mkdir -p "$config_dir" "$storage_dir"
 
+    # Download CA certificate
+    local ca_cert_path=""
+    if ca_cert_path=$(download_ca_cert "$config_dir"); then
+        echo "CA certificate installed at ${ca_cert_path}"
+    fi
+
     # Build command line arguments based on component type
     local args=""
     args="${args} --workspace-id ${WORKSPACE_ID}"
@@ -172,9 +206,8 @@ create_systemd_service() {
         args="${args} --device-id ${DEVICE_ID}"
     fi
 
-    if [ -n "$CONTROLLER_CA_CERT" ] && [ -f "$CONTROLLER_CA_CERT" ]; then
-        cp "$CONTROLLER_CA_CERT" "${config_dir}/controller-ca.pem"
-        args="${args} --controller-ca-cert ${config_dir}/controller-ca.pem"
+    if [ -n "$ca_cert_path" ]; then
+        args="${args} --controller-ca-cert ${ca_cert_path}"
     fi
 
     if [ "$component" = "connector" ]; then
@@ -280,6 +313,10 @@ parse_args() {
                 ;;
             -a|--ca-cert)
                 CONTROLLER_CA_CERT="$2"
+                shift 2
+                ;;
+            --ca-cert-url)
+                CA_CERT_URL="$2"
                 shift 2
                 ;;
             --connector-addr)
